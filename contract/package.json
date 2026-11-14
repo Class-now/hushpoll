@@ -1,0 +1,22 @@
+{
+  "name": "hushpoll-contract",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "compact": "compact compile src/hushpoll.compact ./src/managed/hushpoll",
+    "test": "vitest run",
+    "demo": "tsx src/demo.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "ci": "npm run compact && npm run typecheck && npm run test"
+  },
+  "dependencies": {
+    "@midnight-ntwrk/compact-runtime": "^0.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  }
+}

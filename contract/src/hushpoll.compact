@@ -1,0 +1,110 @@
+// Hushpoll — anonymous polls for a closed group on Midnight.
+// SPDX-License-Identifier: Apache-2.0
+//
+// A class, club or lab enrolls its members once. Each member can then vote
+// exactly once per poll, and the chain learns only that "some enrolled member
+// voted X" — never which member. Membership is a commitment in a
+// HistoricMerkleTree; double voting is stopped by a per-poll nullifier.
+
+pragma language_version >= 0.23;
+
+import CompactStandardLibrary;
+
+export enum Phase { SETUP, OPEN, CLOSED }
+
+export enum Choice { YES, NO, ABSTAIN }
+
+// ---- public ledger -------------------------------------------------------
+
+export ledger organizer: Bytes<32>;
+export ledger phase: Phase;
+export ledger poll: Counter;                       // poll number, starts at 1
+export ledger question: Opaque<"string">;
+export ledger members: HistoricMerkleTree<10, Bytes<32>>;
+export ledger memberCount: Counter;
+export ledger nullifiers: Set<Bytes<32>>;
+export ledger yes: Counter;
+export ledger no: Counter;
+export ledger abstain: Counter;
+
+// ---- private inputs (witnesses) ------------------------------------------
+
+witness secretKey(): Bytes<32>;
+witness findMemberPath(commitment: Bytes<32>): MerkleTreePath<10, Bytes<32>>;
+
+constructor() {
+  organizer = disclose(organizerKey(secretKey()));
+  phase = Phase.SETUP;
+  poll.increment(1);
+}
+
+// ---- derivations -----------------------------------------------------------
+
+export circuit organizerKey(sk: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>([pad(32, "hushpoll:organizer"), sk]);
+}
+
+// The value a member hands to the organizer to be enrolled. It hides sk.
+export circuit memberCommitment(sk: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>([pad(32, "hushpoll:member"), sk]);
+}
+
+// One nullifier per (member, poll). Different polls give unlinkable values.
+export circuit voteNullifier(sk: Bytes<32>, pollId: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<3, Bytes<32>>>([pad(32, "hushpoll:nullifier"), pollId, sk]);
+}
+
+circuit assertOrganizer(): [] {
+  assert(organizer == organizerKey(secretKey()), "only the organizer can do this");
+}
+
+// ---- organizer actions -----------------------------------------------------
+
+export circuit enroll(commitment: Bytes<32>): [] {
+  assertOrganizer();
+  assert(phase == Phase.SETUP, "enrollment is closed");
+  members.insert(disclose(commitment));
+  memberCount.increment(1);
+}
+
+export circuit open(text: Opaque<"string">): [] {
+  assertOrganizer();
+  assert(phase != Phase.OPEN, "a poll is already open");
+  question = disclose(text);
+  yes.resetToDefault();
+  no.resetToDefault();
+  abstain.resetToDefault();
+  phase = Phase.OPEN;
+}
+
+export circuit close(): [] {
+  assertOrganizer();
+  assert(phase == Phase.OPEN, "no poll is open");
+  phase = Phase.CLOSED;
+  poll.increment(1);
+}
+
+// ---- member action ---------------------------------------------------------
+
+export circuit vote(choice: Choice): [] {
+  assert(phase == Phase.OPEN, "no poll is open");
+  const sk = secretKey();
+  const me = memberCommitment(sk);
+  const path = findMemberPath(me);
+  // Bind the witness-supplied path to the caller, then check it against the tree.
+  assert(path.leaf == me, "path is not for this member");
+  assert(members.checkRoot(disclose(merkleTreePathRoot<10, Bytes<32>>(path))), "not an enrolled member");
+
+  const nul = disclose(voteNullifier(sk, poll as Field as Bytes<32>));
+  assert(!nullifiers.member(nul), "already voted in this poll");
+  nullifiers.insert(nul);
+
+  const c = disclose(choice);
+  if (c == Choice.YES) {
+    yes.increment(1);
+  } else if (c == Choice.NO) {
+    no.increment(1);
+  } else {
+    abstain.increment(1);
+  }
+}
