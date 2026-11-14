@@ -2,6 +2,9 @@
 
 Built for the Midnight Buildathon Wave 3 (AKINDO). Licensed under Apache-2.0. Topic: `midnightntwrk`.
 
+- Demo video (2 min, narrated): [docs/hushpoll-demo.mp4](docs/hushpoll-demo.mp4)
+- Slides: [docs/hushpoll-slides.pdf](docs/hushpoll-slides.pdf)
+
 ## The problem
 
 A seminar, club or research lab wants honest answers ("Is the workload too heavy?", "Should we drop this rule?").
