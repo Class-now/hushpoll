@@ -34,3 +34,6 @@ code { font-size: 11px; color: #9fd3ff; }
 .fill { height: 100%; background: linear-gradient(90deg, #5b67ff, #9a6bff); transition: width 0.3s; }
 .log li { padding: 4px 0; font-size: 13px; border-bottom: 1px solid #1d2045; }
 .log .bad { color: #ff9a9a; }
+
+.demo-banner { background: #fff6d6; border: 1px solid #e6c95a; border-radius: 8px; padding: 8px 12px; font-size: 14px; color: #4a3b00; }
+.demo-banner b { text-transform: none; }

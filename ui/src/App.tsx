@@ -34,7 +34,7 @@ export function App() {
     LocalHushpoll.deploy(organizerSk).then((p) => {
       setPoll(p);
       setView(p.view());
-      setLog([{ who: "Organizer", text: "deployed Hushpoll (local simulator)", ok: true }]);
+      setLog([{ who: "Organizer", text: "deployed Hushpoll (demo mode, simulated ledger)", ok: true }]);
     });
   }, [organizerSk]);
 
@@ -56,7 +56,7 @@ export function App() {
   const connectLace = async () => {
     const w = (window as any).midnight?.mnLace;
     if (!w) {
-      setWallet("Lace (Midnight) not found — running in local simulator mode");
+      setWallet("Lace (Midnight) not found — running in demo mode (simulated ledger)");
       return;
     }
     try {
@@ -80,6 +80,18 @@ export function App() {
         <p className="sub">
           Anonymous polls for a closed group on Midnight. Every member votes once; the chain only learns{" "}
           <em>“an enrolled member voted”</em>, never who.
+        </p>
+        <p className="demo-banner">
+          <b>demo mode (simulated ledger)</b> — the real compiled Compact circuits run in your browser; the ledger is kept
+          in memory instead of on chain. The same contract was deployed and played as proved transactions on a Midnight
+          network:{" "}
+          <a href="https://github.com/Class-now/hushpoll/blob/main/docs/local-deploy-run.txt" target="_blank" rel="noreferrer">
+            deploy log
+          </a>{" "}
+          ·{" "}
+          <a href="https://github.com/Class-now/hushpoll" target="_blank" rel="noreferrer">
+            source
+          </a>
         </p>
         <div className="wallet">
           <button onClick={connectLace}>Connect Lace</button>

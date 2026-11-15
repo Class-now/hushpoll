@@ -2,6 +2,7 @@
 
 Built for the Midnight Buildathon Wave 3 (AKINDO). Licensed under Apache-2.0. Topic: `midnightntwrk`.
 
+- **Live demo: https://class-now.github.io/hushpoll/** (demo mode, simulated ledger: the compiled circuits run in the browser, the ledger is in memory)
 - Demo video (2 min, narrated): [docs/hushpoll-demo.mp4](docs/hushpoll-demo.mp4)
 - Slides: [docs/hushpoll-slides.pdf](docs/hushpoll-slides.pdf)
 

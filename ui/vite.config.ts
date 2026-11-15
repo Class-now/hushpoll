@@ -4,6 +4,8 @@ import wasm from "vite-plugin-wasm";
 
 // esnext keeps top-level await native (needed by the WASM ledger runtime).
 export default defineConfig({
+  // Relative base so the same build works on GitHub Pages (/hushpoll/) and locally.
+  base: "./",
   plugins: [react(), wasm()],
   build: { target: "esnext" },
   esbuild: { target: "esnext" },
