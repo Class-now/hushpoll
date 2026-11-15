@@ -1,0 +1,139 @@
+// SPDX-License-Identifier: Apache-2.0
+// Deploy Hushpoll to a Midnight network and run one full poll round with real
+// zero-knowledge proofs: enroll three members, open a poll, three anonymous
+// votes, a rejected double vote, a rejected outsider, close.
+//
+// Local network:   npm run chain:up && npm run local
+// Each member is a separate private state (its own secret key) on this machine,
+// standing in for three different devices.
+
+import { webcrypto } from "node:crypto";
+import { writeFileSync, mkdirSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { ContractState } from "@midnight-ntwrk/compact-runtime";
+import { deployContract, findDeployedContract } from "@midnight-ntwrk/midnight-js-contracts";
+import { CompiledContract } from "@midnight-ntwrk/midnight-js-protocol/v9/compact-js";
+import {
+  LocalTestConfiguration,
+  MidnightWalletProvider,
+  initializeMidnightProviders,
+  createLogger,
+} from "@midnight-ntwrk/testkit-js";
+import { Contract, ledger, pureCircuits, Choice } from "../managed/hushpoll/contract/index.js";
+import { witnesses, type HushpollPrivateState } from "./witnesses.js";
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const zkConfigPath = path.resolve(here, "../managed/hushpoll");
+const logDir = path.resolve(here, "../logs");
+mkdirSync(logDir, { recursive: true });
+const logger = createLogger("hushpoll-deploy.log", logDir);
+
+// Genesis-funded wallet of the local dev chain (CFG_PRESET=dev).
+const GENESIS_SEED = "0000000000000000000000000000000000000000000000000000000000000001";
+
+const env = new LocalTestConfiguration({ indexer: 8088, node: 9944, proofServer: 6300 });
+
+const key = (): Uint8Array => webcrypto.getRandomValues(new Uint8Array(32));
+const short = (b: Uint8Array) => Buffer.from(b).toString("hex").slice(0, 16) + "…";
+const t0 = Date.now();
+const secs = () => ((Date.now() - t0) / 1000).toFixed(1) + "s";
+const out: string[] = [];
+const say = (s: string) => {
+  const line = `[${secs()}] ${s}`;
+  console.log(line);
+  out.push(line);
+};
+
+const compiled = CompiledContract.make("hushpoll", Contract<HushpollPrivateState>).pipe(
+  CompiledContract.withWitnesses(witnesses as any),
+  CompiledContract.withCompiledFileAssets(zkConfigPath),
+) as any;
+
+say("Hushpoll on a local Midnight network (node 2.1.101, indexer 4.4.101, proof server 9.0.2-rc.0)");
+const wallet = await MidnightWalletProvider.build(logger, env, GENESIS_SEED);
+await wallet.start(true);
+say("wallet synced and funded (genesis dev wallet)");
+
+const providers = initializeMidnightProviders(wallet, env, {
+  zkConfigPath,
+  privateStateStoreName: "hushpoll-private-state",
+} as any) as any;
+
+const organizer = key();
+const members = { alice: key(), bob: key(), chika: key() };
+const outsider = key();
+
+say("deploying the contract (the organizer key stays in private state)…");
+const deployed: any = await deployContract(providers, {
+  compiledContract: compiled,
+  privateStateId: "organizer",
+  initialPrivateState: { secretKey: organizer },
+} as any);
+const address: string = deployed.deployTxData.public.contractAddress;
+say(`deployed at ${address} (tx ${deployed.deployTxData.public.txId}, block ${deployed.deployTxData.public.blockHeight})`);
+
+const readLedger = async () => {
+  const read = await providers.publicDataProvider.queryContractState(address);
+  return ledger(read.contractState.deserialize({ v9: ContractState }).data);
+};
+const show = async (title: string) => {
+  const l = await readLedger();
+  say(
+    `${title}: phase=${["SETUP", "OPEN", "CLOSED"][l.phase]} poll=${l.poll} members=${l.memberCount}` +
+      ` yes=${l.yes} no=${l.no} abstain=${l.abstain} nullifiers=${l.nullifiers.size()}`,
+  );
+};
+const tx = (r: any) => `tx ${String(r.public.txId).slice(0, 16)}… block ${r.public.blockHeight}`;
+
+for (const [name, sk] of Object.entries(members)) {
+  const c = pureCircuits.memberCommitment(sk);
+  const r = await deployed.callTx.enroll(c);
+  say(`enrolled ${name}: commitment ${short(c)} — ${tx(r)}`);
+}
+await show("after enrollment");
+
+const r1 = await deployed.callTx.open("Move the seminar to Friday?");
+say(`poll opened — ${tx(r1)}`);
+
+const join = (id: string, sk: Uint8Array) =>
+  findDeployedContract(providers, {
+    contractAddress: address,
+    compiledContract: compiled,
+    privateStateId: id,
+    initialPrivateState: { secretKey: sk },
+  } as any) as Promise<any>;
+
+const handles: Record<string, any> = {};
+for (const [name, sk] of Object.entries(members)) handles[name] = await join(name, sk);
+const votes: [string, Choice][] = [
+  ["alice", Choice.YES],
+  ["bob", Choice.YES],
+  ["chika", Choice.NO],
+];
+for (const [name, choice] of votes) {
+  const r = await handles[name].callTx.vote(choice);
+  say(`${name} voted with a ZK proof (chain sees a nullifier and +1) — ${tx(r)}`);
+}
+await show("after three votes");
+
+const outsiderHandle = await join("outsider", outsider);
+for (const [label, h] of [
+  ["alice votes again", handles.alice],
+  ["an outsider tries to vote", outsiderHandle],
+] as const) {
+  try {
+    await h.callTx.vote(Choice.NO);
+    say(`${label}: ACCEPTED (unexpected)`);
+  } catch (e) {
+    say(`${label}: rejected — ${String((e as Error).message).split("\n")[0].slice(0, 120)}`);
+  }
+}
+
+const r2 = await deployed.callTx.close();
+say(`poll closed — ${tx(r2)}`);
+await show("final");
+
+writeFileSync(path.resolve(logDir, "run-round.txt"), out.join("\n") + "\n");
+await wallet.stop();
+process.exit(0);

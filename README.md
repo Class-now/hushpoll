@@ -67,10 +67,38 @@ The tests in `contract/src/test/hushpoll.test.ts` cover the following:
 - only the organizer can manage polls;
 - a member can vote again in the next poll with an unlinkable nullifier.
 
+### Deploy on a Midnight network with real proofs (`deploy/`)
+
+`deploy/` deploys the contract with midnight-js 5.0.0 and plays one full round as real transactions: every enroll, open, vote and close is proved by the proof server and finalized on chain. Each member is a separate private state with its own secret key, standing in for separate devices.
+
+```bash
+cd deploy
+npm install                       # Node >= 22.12
+node scripts/sync-contract.mjs    # copies the compiled contract from ../contract
+npm run chain:up                  # local Midnight network: node 2.1.101, indexer 4.4.101, proof server 9.0.2-rc.0 (Docker)
+npm run local                     # deploy + one round, about 4 minutes
+```
+
+Output of a run (full log in [`docs/local-deploy-run.txt`](docs/local-deploy-run.txt)):
+
+```
+deployed at afc5fc53…f72f1c (block 54)
+enrolled alice / bob / chika (blocks 58, 62, 66)
+after enrollment: phase=SETUP poll=1 members=3 yes=0 no=0 abstain=0 nullifiers=0
+alice, bob, chika voted with ZK proofs (blocks 75, 79, 83)
+after three votes: phase=OPEN poll=1 members=3 yes=2 no=1 abstain=0 nullifiers=3
+alice votes again: rejected — failed assert: already voted in this poll
+an outsider tries to vote: rejected — no Merkle path for an unenrolled commitment
+final: phase=CLOSED poll=2 members=3 yes=2 no=1 abstain=0 nullifiers=3
+```
+
+The chain only ever sees the three commitments, three nullifiers and the tallies; nothing in the ledger links a vote to a member.
+
 ## Roadmap
 
 - Wave 3 (done): contract, simulation tests, terminal demo and a web UI for the organizer and member flows.
-- Wave 3 (in progress): deploy to the Midnight testnet with midnight-js providers (Lace wallet, local proof server) behind the same UI.
+- Wave 3 (done): deployment with midnight-js 5.0.0 on a local Midnight network (ledger v9), one full round as proved transactions.
+- Next: the same `deploy/` flow on the public testnet with a Lace-funded wallet, and the web UI switched from the in-memory ledger to these providers.
 - Next: invite links that carry a one-time enrollment code. A threshold so that tallies stay hidden until N votes have been cast, which keeps small groups from being de-anonymised by timing. Rating scales beyond yes/no/abstain.
 
 ## Who it is for

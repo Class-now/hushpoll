@@ -1,0 +1,29 @@
+{
+  "name": "hushpoll-deploy",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "description": "Deploy Hushpoll to a Midnight network and run one full poll round with real ZK proofs.",
+  "scripts": {
+    "chain:up": "docker compose -f standalone.yml up -d --wait",
+    "chain:down": "docker compose -f standalone.yml down",
+    "local": "tsx src/run-round.ts"
+  },
+  "engines": {
+    "node": ">=22.12"
+  },
+  "dependencies": {
+    "@midnight-ntwrk/compact-runtime": "0.21.0",
+    "@midnight-ntwrk/midnight-js": "5.0.0",
+    "@midnight-ntwrk/midnight-js-contracts": "5.0.0",
+    "@midnight-ntwrk/midnight-js-protocol": "5.0.0",
+    "@midnight-ntwrk/testkit-js": "5.0.0",
+    "pino": "^10.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.3"
+  }
+}

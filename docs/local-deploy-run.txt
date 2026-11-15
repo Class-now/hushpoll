@@ -1,0 +1,17 @@
+[0.0s] Hushpoll on a local Midnight network (node 2.1.101, indexer 4.4.101, proof server 9.0.2-rc.0)
+[26.3s] wallet synced and funded (genesis dev wallet)
+[26.3s] deploying the contract (the organizer key stays in private state)…
+[48.4s] deployed at afc5fc537895de51d42f012315fc4b169590e5a7d05bc2f7bbd961dd64f72f1c (tx 0017950bc276c8e912420abb91850c4251677481ad539b0ff867ad1704b00f8699, block 54)
+[71.5s] enrolled alice: commitment 3aa72ba3257f6887… — tx 00afce8c32beb07b… block 58
+[95.7s] enrolled bob: commitment 5ea1e28765d4040e… — tx 00f36708ae508fcc… block 62
+[119.6s] enrolled chika: commitment 8dc60862042509e9… — tx 0085bc8a72d4d59c… block 66
+[119.6s] after enrollment: phase=SETUP poll=1 members=3 yes=0 no=0 abstain=0 nullifiers=0
+[143.6s] poll opened — tx 0008cafdaf377384… block 70
+[172.9s] alice voted with a ZK proof (chain sees a nullifier and +1) — tx 00e7b7e76ed317f9… block 75
+[197.1s] bob voted with a ZK proof (chain sees a nullifier and +1) — tx 002f05354c45de6e… block 79
+[221.0s] chika voted with a ZK proof (chain sees a nullifier and +1) — tx 000228474df5ceb9… block 83
+[221.0s] after three votes: phase=OPEN poll=1 members=3 yes=2 no=1 abstain=0 nullifiers=3
+[222.6s] alice votes again: rejected — failed assert: already voted in this poll
+[223.3s] an outsider tries to vote: rejected — Error executing circuit 'vote'
+[245.3s] poll closed — tx 00485929e3b553b1… block 87
+[245.3s] final: phase=CLOSED poll=2 members=3 yes=2 no=1 abstain=0 nullifiers=3
