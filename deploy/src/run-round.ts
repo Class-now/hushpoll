@@ -4,6 +4,8 @@
 // votes, a rejected double vote, a rejected outsider, close.
 //
 // Local network:   npm run chain:up && npm run local
+// Preview testnet: MN_NETWORK=preview MN_SEED=<funded 64-hex seed> npm run local
+//                  (fund it first with src/testnet-fund.ts; local proof server on 6300)
 // Each member is a separate private state (its own secret key) on this machine,
 // standing in for three different devices.
 
@@ -16,6 +18,7 @@ import { deployContract, findDeployedContract } from "@midnight-ntwrk/midnight-j
 import { CompiledContract } from "@midnight-ntwrk/midnight-js-protocol/v9/compact-js";
 import {
   LocalTestConfiguration,
+  PreviewTestEnvironment,
   MidnightWalletProvider,
   initializeMidnightProviders,
   createLogger,
@@ -32,7 +35,14 @@ const logger = createLogger("hushpoll-deploy.log", logDir);
 // Genesis-funded wallet of the local dev chain (CFG_PRESET=dev).
 const GENESIS_SEED = "0000000000000000000000000000000000000000000000000000000000000001";
 
-const env = new LocalTestConfiguration({ indexer: 8088, node: 9944, proofServer: 6300 });
+const PREVIEW = process.env.MN_NETWORK === "preview";
+const env: any = PREVIEW
+  ? {
+      ...new (PreviewTestEnvironment as any)(logger).getEnvironmentConfiguration(),
+      proofServer: process.env.MN_PROOF_SERVER ?? "http://127.0.0.1:6300",
+    }
+  : new LocalTestConfiguration({ indexer: 8088, node: 9944, proofServer: 6300 });
+const SEED = PREVIEW ? (process.env.MN_SEED ?? "").trim() : GENESIS_SEED;
 
 const key = (): Uint8Array => webcrypto.getRandomValues(new Uint8Array(32));
 const short = (b: Uint8Array) => Buffer.from(b).toString("hex").slice(0, 16) + "…";
@@ -50,10 +60,14 @@ const compiled = CompiledContract.make("hushpoll", Contract<HushpollPrivateState
   CompiledContract.withCompiledFileAssets(zkConfigPath),
 ) as any;
 
-say("Hushpoll on a local Midnight network (node 2.1.101, indexer 4.4.101, proof server 9.0.2-rc.0)");
-const wallet = await MidnightWalletProvider.build(logger, env, GENESIS_SEED);
+say(
+  PREVIEW
+    ? "Hushpoll on the public Midnight Preview network (indexer.preview.midnight.network, local proof server)"
+    : "Hushpoll on a local Midnight network (node 2.1.101, indexer 4.4.101, proof server 9.0.2-rc.0)",
+);
+const wallet = await MidnightWalletProvider.build(logger, env, SEED);
 await wallet.start(true);
-say("wallet synced and funded (genesis dev wallet)");
+say(PREVIEW ? "wallet synced (faucet-funded tNIGHT, DUST registered)" : "wallet synced and funded (genesis dev wallet)");
 
 const providers = initializeMidnightProviders(wallet, env, {
   zkConfigPath,
@@ -81,7 +95,8 @@ const show = async (title: string) => {
   const l = await readLedger();
   say(
     `${title}: phase=${["SETUP", "OPEN", "CLOSED"][l.phase]} poll=${l.poll} members=${l.memberCount}` +
-      ` yes=${l.yes} no=${l.no} abstain=${l.abstain} nullifiers=${l.nullifiers.size()}`,
+      ` yes=${l.yes} no=${l.no} abstain=${l.abstain} nullifiers=${l.nullifiers.size()}` +
+      ` ballots=${l.votes} quorum=${l.quorum} quorumMet=${l.quorumMet}`,
   );
 };
 const tx = (r: any) => `tx ${String(r.public.txId).slice(0, 16)}… block ${r.public.blockHeight}`;
@@ -92,6 +107,9 @@ for (const [name, sk] of Object.entries(members)) {
   say(`enrolled ${name}: commitment ${short(c)} — ${tx(r)}`);
 }
 await show("after enrollment");
+
+const rq = await deployed.callTx.setQuorum(2n);
+say(`quorum set to 2 ballots — ${tx(rq)}`);
 
 const r1 = await deployed.callTx.open("Move the seminar to Friday?");
 say(`poll opened — ${tx(r1)}`);
@@ -134,6 +152,6 @@ const r2 = await deployed.callTx.close();
 say(`poll closed — ${tx(r2)}`);
 await show("final");
 
-writeFileSync(path.resolve(logDir, "run-round.txt"), out.join("\n") + "\n");
+writeFileSync(path.resolve(logDir, PREVIEW ? "run-round-preview.txt" : "run-round.txt"), out.join("\n") + "\n");
 await wallet.stop();
 process.exit(0);

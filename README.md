@@ -28,6 +28,7 @@ Midnight's dual-ledger model is used directly. The public ledger holds the tree,
 
 - `enroll(commitment)`: organizer only, during setup. Adds a member commitment to the tree.
 - `open(question)` / `close()`: organizer only. Starts or ends a poll. `close` moves to the next poll number, so every member gets a fresh nullifier.
+- `setQuorum(n)`: organizer only, while no poll is open. Sets the minimum number of ballots for a valid result (0 disables it). When a poll closes, the contract compares the public ballot counter with the quorum and stores `quorumMet`, so a "result" from two votes in a ten-person seminar is marked as not valid on chain instead of being read as the group's decision.
 - `vote(choice)`: any enrolled member, once per poll. The checks inside the proof are:
   1. the witness path's leaf equals the caller's own commitment, so a member's path cannot be reused by someone else;
   2. the path's root is a root of the member tree;
@@ -43,9 +44,9 @@ Tested with Compact toolchain 0.36.1 (CLI 0.5.3) and `@midnight-ntwrk/compact-ru
 compact update
 cd contract
 npm install
-npm run compact     # compiles to src/managed/hushpoll (4 circuits)
+npm run compact     # compiles to src/managed/hushpoll (5 circuits)
 npm run typecheck
-npm test            # simulation tests, no network needed (6 tests)
+npm test            # simulation tests, no network needed (9 tests)
 npm run demo        # one full round in the terminal: enroll, open, vote, reject a double vote and an outsider, close
 ```
 
@@ -66,7 +67,9 @@ The tests in `contract/src/test/hushpoll.test.ts` cover the following:
 - a second vote in the same poll is rejected;
 - non-members are rejected;
 - only the organizer can manage polls;
-- a member can vote again in the next poll with an unlinkable nullifier.
+- a member can vote again in the next poll with an unlinkable nullifier;
+- a closed poll below the quorum is marked as not valid, and one that reaches it as valid;
+- the quorum cannot be changed during an open poll or by a member.
 
 ### Deploy on a Midnight network with real proofs (`deploy/`)
 
@@ -100,7 +103,8 @@ The chain only ever sees the three commitments, three nullifiers and the tallies
 - Wave 3 (done): contract, simulation tests, terminal demo and a web UI for the organizer and member flows.
 - Wave 3 (done): deployment with midnight-js 5.0.0 on a local Midnight network (ledger v9), one full round as proved transactions.
 - Next: the same `deploy/` flow on the public testnet with a Lace-funded wallet, and the web UI switched from the in-memory ledger to these providers.
-- Next: invite links that carry a one-time enrollment code. A threshold so that tallies stay hidden until N votes have been cast, which keeps small groups from being de-anonymised by timing. Rating scales beyond yes/no/abstain.
+- Wave 3 (done): a quorum (minimum ballots) set by the organizer and checked on chain when a poll closes, in the contract, tests, terminal demo, web UI and the on-chain round (`docs/quorum.png`).
+- Next: invite links that carry a one-time enrollment code. Keeping tallies hidden until N votes have been cast, which keeps small groups from being de-anonymised by timing. Rating scales beyond yes/no/abstain.
 
 ## Who it is for
 

@@ -28,6 +28,7 @@ code { font-size: 11px; color: #9fd3ff; }
 .voter { display: flex; gap: 6px; align-items: center; padding: 6px 0; border-bottom: 1px solid #222649; }
 .voter strong { width: 72px; }
 .tag { font-size: 11px; background: #1e5f3a; padding: 2px 6px; border-radius: 6px; }
+.tag.warn { background: #7a3b12; margin-left: 6px; }
 .q { font-size: 16px; font-weight: 600; }
 .bar { display: grid; grid-template-columns: 64px 1fr 32px; gap: 8px; align-items: center; margin: 6px 0; }
 .track { height: 10px; background: #0f1128; border-radius: 5px; overflow: hidden; }

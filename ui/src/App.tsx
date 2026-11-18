@@ -26,6 +26,7 @@ export function App() {
   );
   const [outsider] = useState<Person>(() => ({ name: "Outsider", sk: newSecretKey(), enrolled: false, votedIn: null }));
   const [question, setQuestion] = useState("Move the Thursday seminar to Friday?");
+  const [quorumInput, setQuorumInput] = useState(2);
   const [log, setLog] = useState<LogLine[]>([]);
   const [busy, setBusy] = useState(false);
   const [wallet, setWallet] = useState<string>("not connected");
@@ -123,7 +124,25 @@ export function App() {
               </li>
             ))}
           </ul>
-          <h3>2. Ask a question</h3>
+          <h3>2. Minimum ballots (quorum)</h3>
+          <div className="row">
+            <input
+              type="number"
+              min={0}
+              max={65535}
+              value={quorumInput}
+              onChange={(e) => setQuorumInput(Math.max(0, Math.min(65535, Number(e.target.value) || 0)))}
+              disabled={view.phase === Phase.OPEN}
+              aria-label="quorum"
+            />
+            <button
+              disabled={busy || view.phase === Phase.OPEN}
+              onClick={() => run("Organizer", `set the quorum to ${quorumInput}`, () => poll.setQuorum(organizerSk, quorumInput))}
+            >
+              Set quorum
+            </button>
+          </div>
+          <h3>3. Ask a question</h3>
           <input value={question} onChange={(e) => setQuestion(e.target.value)} disabled={view.phase === Phase.OPEN} />
           <div className="row">
             <button
@@ -186,6 +205,14 @@ export function App() {
               <b>{String(n)}</b>
             </div>
           ))}
+          <p className="small">
+            Ballots: {String(view.votes)} / quorum {String(view.quorum)}
+            {view.phase === Phase.CLOSED && (
+              <span className={view.quorumMet ? "tag" : "tag warn"}>
+                {view.quorumMet ? "result valid" : "below quorum — result not valid"}
+              </span>
+            )}
+          </p>
           <p className="muted small">
             Enrolled members: {String(view.memberCount)} · Organizer key: <code>{short(view.organizer)}</code>
           </p>

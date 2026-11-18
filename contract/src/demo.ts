@@ -36,7 +36,8 @@ const show = (title: string) => {
   const l = ledger(ctx.callContext.currentQueryContext.state);
   console.log(
     `\n# ${title}\n  phase=${["SETUP", "OPEN", "CLOSED"][l.phase]} poll=${l.poll} members=${l.memberCount}` +
-      ` yes=${l.yes} no=${l.no} abstain=${l.abstain} nullifiers=${l.nullifiers.size()}`,
+      ` yes=${l.yes} no=${l.no} abstain=${l.abstain} nullifiers=${l.nullifiers.size()}` +
+      ` quorum=${l.quorum} quorumMet=${l.quorumMet}`,
   );
 };
 
@@ -47,6 +48,9 @@ for (const [name, sk] of Object.entries(members)) {
   console.log(`  enrolled ${name}: commitment ${hex(c)} (the secret key never leaves ${name}'s device)`);
 }
 show("after enrollment");
+
+ctx = (await contract.impureCircuits.setQuorum(as("setQuorum", organizer), 2n)).context;
+console.log("  organizer sets a quorum of 2 ballots (a result with fewer votes is not valid)");
 
 ctx = (await contract.impureCircuits.open(as("open", organizer), "Move the seminar to Friday?")).context;
 show('poll 1 open: "Move the seminar to Friday?"');
@@ -75,3 +79,10 @@ for (const [label, sk] of [
 
 ctx = (await contract.impureCircuits.close(as("close", organizer))).context;
 show("poll 1 closed");
+
+// A second poll that does not reach the quorum.
+ctx = (await contract.impureCircuits.open(as("open", organizer), "Order pizza for the next session?")).context;
+ctx = (await contract.impureCircuits.vote(as("vote", members.alice), Choice.YES)).context;
+console.log("  alice voted in poll 2 with a fresh, unlinkable nullifier");
+ctx = (await contract.impureCircuits.close(as("close", organizer))).context;
+show("poll 2 closed with one ballot — below quorum");

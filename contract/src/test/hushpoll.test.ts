@@ -91,4 +91,32 @@ describe("Hushpoll", () => {
     expect(l.yes).toEqual(0n);
     expect(l.nullifiers.size()).toEqual(2n);
   });
+
+  it("marks a closed poll as below quorum when too few members voted", async () => {
+    ctx = (await contract.impureCircuits.close(as(ctx, "close", ORGANIZER))).context;
+    ctx = (await contract.impureCircuits.setQuorum(as(ctx, "setQuorum", ORGANIZER), 2n)).context;
+    ctx = (await contract.impureCircuits.open(as(ctx, "open", ORGANIZER), "Order pizza?")).context;
+    ctx = (await contract.impureCircuits.vote(as(ctx, "vote", ALICE), Choice.YES)).context;
+    ctx = (await contract.impureCircuits.close(as(ctx, "close", ORGANIZER))).context;
+    const l = state(ctx);
+    expect(l.quorum).toEqual(2n);
+    expect(l.votes).toEqual(1n);
+    expect(l.quorumMet).toBe(false);
+  });
+
+  it("marks a closed poll as valid once the quorum is reached", async () => {
+    ctx = (await contract.impureCircuits.close(as(ctx, "close", ORGANIZER))).context;
+    ctx = (await contract.impureCircuits.setQuorum(as(ctx, "setQuorum", ORGANIZER), 2n)).context;
+    ctx = (await contract.impureCircuits.open(as(ctx, "open", ORGANIZER), "Order pizza?")).context;
+    ctx = (await contract.impureCircuits.vote(as(ctx, "vote", ALICE), Choice.YES)).context;
+    ctx = (await contract.impureCircuits.vote(as(ctx, "vote", BOB), Choice.YES)).context;
+    ctx = (await contract.impureCircuits.close(as(ctx, "close", ORGANIZER))).context;
+    expect(state(ctx).quorumMet).toBe(true);
+  });
+
+  it("does not let anyone change the quorum during an open poll or as a member", async () => {
+    await expect(contract.impureCircuits.setQuorum(as(ctx, "setQuorum", ORGANIZER), 3n)).rejects.toThrow("while a poll is open");
+    ctx = (await contract.impureCircuits.close(as(ctx, "close", ORGANIZER))).context;
+    await expect(contract.impureCircuits.setQuorum(as(ctx, "setQuorum", ALICE), 3n)).rejects.toThrow("only the organizer");
+  });
 });

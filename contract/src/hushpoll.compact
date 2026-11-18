@@ -26,6 +26,9 @@ export ledger nullifiers: Set<Bytes<32>>;
 export ledger yes: Counter;
 export ledger no: Counter;
 export ledger abstain: Counter;
+export ledger votes: Counter;                      // ballots in the current poll
+export ledger quorum: Uint<16>;                    // minimum ballots for a valid result
+export ledger quorumMet: Boolean;                  // set when a poll closes
 
 // ---- private inputs (witnesses) ------------------------------------------
 
@@ -74,14 +77,25 @@ export circuit open(text: Opaque<"string">): [] {
   yes.resetToDefault();
   no.resetToDefault();
   abstain.resetToDefault();
+  votes.resetToDefault();
+  quorumMet = false;
   phase = Phase.OPEN;
 }
 
 export circuit close(): [] {
   assertOrganizer();
   assert(phase == Phase.OPEN, "no poll is open");
+  quorumMet = !votes.lessThan(quorum);
   phase = Phase.CLOSED;
   poll.increment(1);
+}
+
+// A poll result only counts when at least `n` members voted. Small groups use
+// this so that a 2-vote "result" is reported as not valid. 0 disables it.
+export circuit setQuorum(n: Uint<16>): [] {
+  assertOrganizer();
+  assert(phase != Phase.OPEN, "cannot change the quorum while a poll is open");
+  quorum = disclose(n);
 }
 
 // ---- member action ---------------------------------------------------------
@@ -98,6 +112,7 @@ export circuit vote(choice: Choice): [] {
   const nul = disclose(voteNullifier(sk, poll as Field as Bytes<32>));
   assert(!nullifiers.member(nul), "already voted in this poll");
   nullifiers.insert(nul);
+  votes.increment(1);
 
   const c = disclose(choice);
   if (c == Choice.YES) {
