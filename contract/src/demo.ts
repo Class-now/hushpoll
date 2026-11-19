@@ -42,10 +42,23 @@ const show = (title: string) => {
 };
 
 console.log("Hushpoll demo — anonymous polls for a closed group on Midnight");
-for (const [name, sk] of Object.entries(members)) {
-  const c = pureCircuits.memberCommitment(sk);
+for (const name of ["alice", "bob"] as const) {
+  const c = pureCircuits.memberCommitment(members[name]);
   ctx = (await contract.impureCircuits.enroll(as("enroll", organizer), c)).context;
   console.log(`  enrolled ${name}: commitment ${hex(c)} (the secret key never leaves ${name}'s device)`);
+}
+
+// chika joins with a one-time invite code instead of sending a commitment.
+const code = key(42);
+ctx = (await contract.impureCircuits.addInvite(as("addInvite", organizer), pureCircuits.inviteHash(code))).context;
+console.log(`  organizer publishes invite hash ${hex(pureCircuits.inviteHash(code))} and hands chika the code off-chain`);
+ctx = (await contract.impureCircuits.redeem(as("redeem", members.chika), code)).context;
+console.log("  chika redeemed the code and enrolled herself (the code is now spent)");
+try {
+  await contract.impureCircuits.redeem(as("redeem", outsider), code);
+  console.log("  outsider reuses the code: accepted (unexpected)");
+} catch (e) {
+  console.log(`  outsider reuses the code: rejected — ${(e as Error).message.split("\n")[0]}`);
 }
 show("after enrollment");
 

@@ -30,6 +30,10 @@ export function App() {
   const [log, setLog] = useState<LogLine[]>([]);
   const [busy, setBusy] = useState(false);
   const [wallet, setWallet] = useState<string>("not connected");
+  // One-time invite codes the organizer handed out off-chain (a link or QR in real use).
+  const [codes, setCodes] = useState<{ code: Uint8Array; usedBy: string | null }[]>([]);
+  const freshCode = codes.find((c) => !c.usedBy);
+  const spentCode = codes.find((c) => c.usedBy);
 
   useEffect(() => {
     LocalHushpoll.deploy(organizerSk).then((p) => {
@@ -121,9 +125,59 @@ export function App() {
                 >
                   {p.enrolled ? "Enrolled" : "Enroll"}
                 </button>
+                {!p.enrolled && (
+                  <button
+                    disabled={busy || !freshCode || view.phase !== Phase.SETUP}
+                    title="the member redeems an invite code and enrolls themself"
+                    onClick={() =>
+                      freshCode &&
+                      run(p.name, `joined with invite code ${short(toHex(freshCode.code))}`, () => poll.redeem(p.sk, freshCode.code), () => {
+                        setPeople((ps) => ps.map((q, j) => (j === i ? { ...q, enrolled: true } : q)));
+                        setCodes((cs) => cs.map((c) => (c === freshCode ? { ...c, usedBy: p.name } : c)));
+                      })
+                    }
+                  >
+                    Join with invite
+                  </button>
+                )}
               </li>
             ))}
           </ul>
+          <p className="muted small">
+            Or hand out one-time invite codes: only hash(code) goes on chain, and a code works once.
+          </p>
+          <div className="row">
+            <button
+              disabled={busy || view.phase !== Phase.SETUP}
+              onClick={() => {
+                const code = newSecretKey();
+                run("Organizer", `published invite ${short(toHex(code))} (only its hash is on chain)`, () => poll.addInvite(organizerSk, code), () =>
+                  setCodes((cs) => [...cs, { code, usedBy: null }]),
+                );
+              }}
+            >
+              Create invite code
+            </button>
+            <button
+              disabled={busy || !spentCode || view.phase !== Phase.SETUP}
+              onClick={() =>
+                spentCode &&
+                run(outsider.name, `tried to reuse ${spentCode.usedBy}'s invite code`, () => poll.redeem(outsider.sk, spentCode.code))
+              }
+            >
+              Outsider reuses a spent code
+            </button>
+          </div>
+          {codes.length > 0 && (
+            <ul className="people small">
+              {codes.map((c) => (
+                <li key={toHex(c.code)}>
+                  <code>{short(toHex(c.code))}</code>
+                  <span className={c.usedBy ? "muted" : "tag"}>{c.usedBy ? `used by ${c.usedBy}` : "unused"}</span>
+                </li>
+              ))}
+            </ul>
+          )}
           <h3>2. Minimum ballots (quorum)</h3>
           <div className="row">
             <input
@@ -214,7 +268,7 @@ export function App() {
             )}
           </p>
           <p className="muted small">
-            Enrolled members: {String(view.memberCount)} · Organizer key: <code>{short(view.organizer)}</code>
+            Enrolled members: {String(view.memberCount)} · Unused invite hashes: {view.invites.length} · Organizer key: <code>{short(view.organizer)}</code>
           </p>
           <h3>Nullifiers (one per vote, unlinkable to members)</h3>
           <ul className="nulls">

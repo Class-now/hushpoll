@@ -114,6 +114,41 @@ describe("Hushpoll", () => {
     expect(state(ctx).quorumMet).toBe(true);
   });
 
+  it("lets a member enroll once with a one-time invite code and then vote", async () => {
+    // fresh contract still in SETUP
+    const c2 = new Contract<HushpollPrivateState>(witnesses);
+    const ctor = await c2.initialState(RT.createConstructorContext({ secretKey: ORGANIZER }, COIN));
+    let x: Ctx = RT.createCircuitContext({
+      circuitId: "addInvite",
+      contractAddress: ADDR,
+      coinPublicKeyOrZswapState: COIN,
+      contractState: ctor.currentContractState,
+      privateState: { secretKey: ORGANIZER },
+    });
+    const CODE = key(77);
+    x = (await c2.impureCircuits.addInvite(as(x, "addInvite", ORGANIZER), pureCircuits.inviteHash(CODE))).context;
+    await expect(c2.impureCircuits.addInvite(as(x, "addInvite", ALICE), pureCircuits.inviteHash(key(78)))).rejects.toThrow("only the organizer");
+    expect(state(x).invites.member(pureCircuits.inviteHash(CODE))).toBe(true);
+    // the plain code is never on the ledger
+    expect(state(x).invites.member(CODE)).toBe(false);
+
+    x = (await c2.impureCircuits.redeem(as(x, "redeem", ALICE), CODE)).context;
+    expect(state(x).memberCount).toEqual(1n);
+    expect(state(x).invites.size()).toEqual(0n);
+    await expect(c2.impureCircuits.redeem(as(x, "redeem", MALLORY), CODE)).rejects.toThrow("invalid or used invite code");
+    await expect(c2.impureCircuits.redeem(as(x, "redeem", MALLORY), key(99))).rejects.toThrow("invalid or used invite code");
+
+    x = (await c2.impureCircuits.open(as(x, "open", ORGANIZER), "Lab dinner on Thursday?")).context;
+    x = (await c2.impureCircuits.vote(as(x, "vote", ALICE), Choice.YES)).context;
+    expect(state(x).yes).toEqual(1n);
+    await expect(c2.impureCircuits.vote(as(x, "vote", MALLORY), Choice.YES)).rejects.toThrow();
+  });
+
+  it("does not accept invite codes once a poll has opened", async () => {
+    await expect(contract.impureCircuits.addInvite(as(ctx, "addInvite", ORGANIZER), pureCircuits.inviteHash(key(50)))).rejects.toThrow("enrollment is closed");
+    await expect(contract.impureCircuits.redeem(as(ctx, "redeem", MALLORY), key(50))).rejects.toThrow("enrollment is closed");
+  });
+
   it("does not let anyone change the quorum during an open poll or as a member", async () => {
     await expect(contract.impureCircuits.setQuorum(as(ctx, "setQuorum", ORGANIZER), 3n)).rejects.toThrow("while a poll is open");
     ctx = (await contract.impureCircuits.close(as(ctx, "close", ORGANIZER))).context;

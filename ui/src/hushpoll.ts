@@ -23,6 +23,7 @@ export type PublicView = {
   quorum: bigint;
   quorumMet: boolean;
   nullifiers: string[];
+  invites: string[];
   organizer: string;
 };
 
@@ -69,6 +70,12 @@ export class LocalHushpoll {
   async setQuorum(organizerSk: Uint8Array, n: number) {
     this.ctx = (await this.contract.impureCircuits.setQuorum(this.as("setQuorum", organizerSk), BigInt(n))).context;
   }
+  async addInvite(organizerSk: Uint8Array, code: Uint8Array) {
+    this.ctx = (await this.contract.impureCircuits.addInvite(this.as("addInvite", organizerSk), pureCircuits.inviteHash(code))).context;
+  }
+  async redeem(memberSk: Uint8Array, code: Uint8Array) {
+    this.ctx = (await this.contract.impureCircuits.redeem(this.as("redeem", memberSk), code)).context;
+  }
   async vote(memberSk: Uint8Array, choice: Choice) {
     this.ctx = (await this.contract.impureCircuits.vote(this.as("vote", memberSk), choice)).context;
   }
@@ -87,6 +94,7 @@ export class LocalHushpoll {
       quorum: BigInt(l.quorum),
       quorumMet: l.quorumMet,
       nullifiers: Array.from(l.nullifiers, (n: Uint8Array) => toHex(n)),
+      invites: Array.from(l.invites, (n: Uint8Array) => toHex(n)),
       organizer: toHex(l.organizer),
     };
   }

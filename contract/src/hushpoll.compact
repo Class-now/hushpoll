@@ -29,6 +29,7 @@ export ledger abstain: Counter;
 export ledger votes: Counter;                      // ballots in the current poll
 export ledger quorum: Uint<16>;                    // minimum ballots for a valid result
 export ledger quorumMet: Boolean;                  // set when a poll closes
+export ledger invites: Set<Bytes<32>>;             // hashes of unused one-time invite codes
 
 // ---- private inputs (witnesses) ------------------------------------------
 
@@ -55,6 +56,12 @@ export circuit memberCommitment(sk: Bytes<32>): Bytes<32> {
 // One nullifier per (member, poll). Different polls give unlinkable values.
 export circuit voteNullifier(sk: Bytes<32>, pollId: Bytes<32>): Bytes<32> {
   return persistentHash<Vector<3, Bytes<32>>>([pad(32, "hushpoll:nullifier"), pollId, sk]);
+}
+
+// What the organizer publishes for a one-time invite code. The code itself
+// travels off-chain (a link or a QR on paper) and is never written to the chain.
+export circuit inviteHash(code: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>([pad(32, "hushpoll:invite"), code]);
 }
 
 circuit assertOrganizer(): [] {
@@ -98,7 +105,27 @@ export circuit setQuorum(n: Uint<16>): [] {
   quorum = disclose(n);
 }
 
-// ---- member action ---------------------------------------------------------
+// Publish the hash of a one-time invite code. Members can then enroll
+// themselves with `redeem` instead of sending their commitment to the organizer.
+export circuit addInvite(codeHash: Bytes<32>): [] {
+  assertOrganizer();
+  assert(phase == Phase.SETUP, "enrollment is closed");
+  const h = disclose(codeHash);
+  assert(!invites.member(h), "invite already exists");
+  invites.insert(h);
+}
+
+// ---- member actions --------------------------------------------------------
+
+// Self-enrollment with an invite code. The code is spent, so it works once.
+export circuit redeem(code: Bytes<32>): [] {
+  assert(phase == Phase.SETUP, "enrollment is closed");
+  const h = disclose(inviteHash(code));
+  assert(invites.member(h), "invalid or used invite code");
+  invites.remove(h);
+  members.insert(disclose(memberCommitment(secretKey())));
+  memberCount.increment(1);
+}
 
 export circuit vote(choice: Choice): [] {
   assert(phase == Phase.OPEN, "no poll is open");

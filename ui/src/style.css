@@ -23,7 +23,10 @@ button:disabled { background: #2a2d4f; color: #6d7097; cursor: default; }
 input { width: 100%; box-sizing: border-box; padding: 8px; border-radius: 8px; border: 1px solid #333865; background: #0f1128; color: inherit; }
 .row { display: flex; gap: 8px; margin-top: 8px; }
 .people, .nulls, .log { list-style: none; padding: 0; margin: 0; }
-.people li { display: grid; grid-template-columns: 60px 1fr auto; gap: 8px; align-items: center; padding: 4px 0; }
+.people li { display: grid; grid-template-columns: 52px 1fr auto auto; gap: 6px; align-items: center; padding: 4px 0; }
+.people li button { white-space: nowrap; }
+.people.small li { grid-template-columns: 1fr auto; }
+.people.small .tag { justify-self: start; }
 code { font-size: 11px; color: #9fd3ff; }
 .voter { display: flex; gap: 6px; align-items: center; padding: 6px 0; border-bottom: 1px solid #222649; }
 .voter strong { width: 72px; }

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Deploy Hushpoll to a Midnight network and run one full poll round with real
-// zero-knowledge proofs: enroll three members, open a poll, three anonymous
+// zero-knowledge proofs: enroll two members, let a third join with a one-time
+// invite code (a reused code is rejected), open a poll, three anonymous
 // votes, a rejected double vote, a rejected outsider, close.
 //
 // Local network:   npm run chain:up && npm run local
@@ -101,10 +102,34 @@ const show = async (title: string) => {
 };
 const tx = (r: any) => `tx ${String(r.public.txId).slice(0, 16)}… block ${r.public.blockHeight}`;
 
-for (const [name, sk] of Object.entries(members)) {
-  const c = pureCircuits.memberCommitment(sk);
+const join = (id: string, sk: Uint8Array) =>
+  findDeployedContract(providers, {
+    contractAddress: address,
+    compiledContract: compiled,
+    privateStateId: id,
+    initialPrivateState: { secretKey: sk },
+  } as any) as Promise<any>;
+
+for (const name of ["alice", "bob"] as const) {
+  const c = pureCircuits.memberCommitment(members[name]);
   const r = await deployed.callTx.enroll(c);
   say(`enrolled ${name}: commitment ${short(c)} — ${tx(r)}`);
+}
+
+// chika enrolls herself with a one-time invite code; only hash(code) is on chain.
+const code = key();
+const ri = await deployed.callTx.addInvite(pureCircuits.inviteHash(code));
+say(`organizer published invite hash ${short(pureCircuits.inviteHash(code))} — ${tx(ri)}`);
+const handles: Record<string, any> = {};
+for (const [name, sk] of Object.entries(members)) handles[name] = await join(name, sk);
+const rr = await handles.chika.callTx.redeem(code);
+say(`chika redeemed the invite code and enrolled herself — ${tx(rr)}`);
+const outsiderHandle = await join("outsider", outsider);
+try {
+  await outsiderHandle.callTx.redeem(code);
+  say("an outsider reuses the spent code: ACCEPTED (unexpected)");
+} catch (e) {
+  say(`an outsider reuses the spent code: rejected — ${String((e as Error).message).split("\n")[0].slice(0, 120)}`);
 }
 await show("after enrollment");
 
@@ -114,16 +139,6 @@ say(`quorum set to 2 ballots — ${tx(rq)}`);
 const r1 = await deployed.callTx.open("Move the seminar to Friday?");
 say(`poll opened — ${tx(r1)}`);
 
-const join = (id: string, sk: Uint8Array) =>
-  findDeployedContract(providers, {
-    contractAddress: address,
-    compiledContract: compiled,
-    privateStateId: id,
-    initialPrivateState: { secretKey: sk },
-  } as any) as Promise<any>;
-
-const handles: Record<string, any> = {};
-for (const [name, sk] of Object.entries(members)) handles[name] = await join(name, sk);
 const votes: [string, Choice][] = [
   ["alice", Choice.YES],
   ["bob", Choice.YES],
@@ -135,7 +150,6 @@ for (const [name, choice] of votes) {
 }
 await show("after three votes");
 
-const outsiderHandle = await join("outsider", outsider);
 for (const [label, h] of [
   ["alice votes again", handles.alice],
   ["an outsider tries to vote", outsiderHandle],
