@@ -106,11 +106,22 @@ final: phase=CLOSED poll=2 members=3 yes=2 no=1 abstain=0 nullifiers=3 ballots=3
 
 The chain only ever sees the commitments, one invite hash, three nullifiers and the tallies; nothing in the ledger links a vote to a member, and the invite code itself never appears on chain.
 
+#### On the public Midnight Preview network
+
+The same round also runs on the public **Preview** testnet (`indexer.preview.midnight.network`) with a faucet-funded wallet whose tNIGHT is registered for DUST generation and a local proof server:
+
+```bash
+MN_NETWORK=preview MN_SEED=<funded 64-hex seed> npx tsx src/run-round.ts
+```
+
+Run of 2026-11-20 (full log in [`docs/preview-deploy-run.txt`](docs/preview-deploy-run.txt)): contract `327f878be1135b2d9977bb79e78c7260d4f9c2f157dffb2b9e33a4466de3d2e4`, deployed in block 184334 (tx `0015d5949d2a5db1…`). Three members enrolled (one with an invite code), quorum 2, three ZK-proved votes, a double vote and an outsider rejected, and the poll closed in block 184390 with `yes=2 no=1 quorumMet=true` — about 6 minutes after the wallet sync.
+
 ## Roadmap
 
 - Wave 3 (done): contract, simulation tests, terminal demo and a web UI for the organizer and member flows.
 - Wave 3 (done): deployment with midnight-js 5.0.0 on a local Midnight network (ledger v9), one full round as proved transactions.
-- Next: the same `deploy/` flow on the public testnet with a Lace-funded wallet, and the web UI switched from the in-memory ledger to these providers.
+- Wave 3 (done): the same `deploy/` round on the public Midnight Preview testnet (faucet-funded wallet, DUST registered), see `docs/preview-deploy-run.txt`.
+- Next: the web UI switched from the in-memory ledger to these providers through Lace (DApp Connector).
 - Wave 3 (done): a quorum (minimum ballots) set by the organizer and checked on chain when a poll closes, in the contract, tests, terminal demo, web UI and the on-chain round (`docs/quorum.png`).
 - Next: invite links that carry a one-time enrollment code. Keeping tallies hidden until N votes have been cast, which keeps small groups from being de-anonymised by timing. Rating scales beyond yes/no/abstain.
 

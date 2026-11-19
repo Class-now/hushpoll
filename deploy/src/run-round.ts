@@ -23,6 +23,7 @@ import {
   MidnightWalletProvider,
   initializeMidnightProviders,
   createLogger,
+  syncWallet,
 } from "@midnight-ntwrk/testkit-js";
 import { Contract, ledger, pureCircuits, Choice } from "../managed/hushpoll/contract/index.js";
 import { witnesses, type HushpollPrivateState } from "./witnesses.js";
@@ -67,7 +68,14 @@ say(
     : "Hushpoll on a local Midnight network (node 2.1.101, indexer 4.4.101, proof server 9.0.2-rc.0)",
 );
 const wallet = await MidnightWalletProvider.build(logger, env, SEED);
-await wallet.start(true);
+if (PREVIEW) {
+  // A fresh sync of a public network takes minutes; testkit's start() waits only 90 s
+  // between state emissions, so start the wallet and sync with a longer timeout here.
+  await (wallet as any).wallet.start((wallet as any).seeds);
+  await (syncWallet as any)((wallet as any).wallet, 2_000, 60 * 60_000);
+} else {
+  await wallet.start(true);
+}
 say(PREVIEW ? "wallet synced (faucet-funded tNIGHT, DUST registered)" : "wallet synced and funded (genesis dev wallet)");
 
 const providers = initializeMidnightProviders(wallet, env, {

@@ -29,8 +29,9 @@ const started = Date.now();
 const timer = setInterval(() => console.log(`... syncing ${Math.round((Date.now() - started) / 1000)}s`), 30000);
 try {
   await wallet.wallet.start(wallet.seeds);
-  // First sync of a fresh wallet on a public network can be slow; allow 20 min between emissions.
-  await (syncWallet as any)(wallet.wallet, 2_000, 20 * 60_000);
+  // First sync of a fresh wallet on a public network can be slow (11-20: the DUST
+  // wallet had not caught up after 20 min on Preview); allow 60 min.
+  await (syncWallet as any)(wallet.wallet, 2_000, 60 * 60_000);
   console.log("wallet synced");
   const night = await (waitForFunds as any)(wallet.wallet, env, true, wallet.unshieldedKeystore);
   console.log("NIGHT balance:", String(night));

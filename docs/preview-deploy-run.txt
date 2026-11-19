@@ -1,0 +1,20 @@
+[0.0s] Hushpoll on the public Midnight Preview network (indexer.preview.midnight.network, local proof server)
+[288.0s] wallet synced (faucet-funded tNIGHT, DUST registered)
+[288.0s] deploying the contract (the organizer key stays in private state)…
+[307.8s] deployed at 327f878be1135b2d9977bb79e78c7260d4f9c2f157dffb2b9e33a4466de3d2e4 (tx 0015d5949d2a5db1d89ddfca0d981d671de7ca6f4c020ae1b1fec1eb9b6bceffcd, block 184334)
+[367.0s] enrolled alice: commitment 96bd0dd5e992995b… — tx 001610d4fed59bb9… block 184344
+[390.9s] enrolled bob: commitment 94e30fc16fba659e… — tx 00a4a328102a66ff… block 184348
+[415.6s] organizer published invite hash ab0e534982bc46af… — tx 0056a2c4e201df43… block 184352
+[481.9s] chika redeemed the invite code and enrolled herself — tx 00572b8ea53e503a… block 184363
+[485.4s] an outsider reuses the spent code: rejected — failed assert: invalid or used invite code
+[486.0s] after enrollment: phase=SETUP poll=1 members=3 yes=0 no=0 abstain=0 nullifiers=0 ballots=0 quorum=0 quorumMet=false
+[511.0s] quorum set to 2 ballots — tx 0051937244463ce6… block 184368
+[535.2s] poll opened — tx 00199df09dd70d87… block 184372
+[565.9s] alice voted with a ZK proof (chain sees a nullifier and +1) — tx 00927475b0c308b7… block 184377
+[590.2s] bob voted with a ZK proof (chain sees a nullifier and +1) — tx 001fa85a0ac2f537… block 184381
+[619.2s] chika voted with a ZK proof (chain sees a nullifier and +1) — tx 000c90af75b9b337… block 184386
+[619.5s] after three votes: phase=OPEN poll=1 members=3 yes=2 no=1 abstain=0 nullifiers=3 ballots=3 quorum=2 quorumMet=false
+[620.8s] alice votes again: rejected — failed assert: already voted in this poll
+[621.5s] an outsider tries to vote: rejected — Error executing circuit 'vote'
+[645.5s] poll closed — tx 001c1053d618dc01… block 184390
+[646.1s] final: phase=CLOSED poll=2 members=3 yes=2 no=1 abstain=0 nullifiers=3 ballots=3 quorum=2 quorumMet=true
