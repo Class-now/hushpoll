@@ -2,7 +2,7 @@
 
 Built for the Midnight Buildathon Wave 3 (AKINDO). Licensed under Apache-2.0. Topic: `midnightntwrk`.
 
-- **Live demo: https://class-now.github.io/hushpoll/** (demo mode, simulated ledger: the compiled circuits run in the browser, the ledger is in memory)
+- **Live demo: https://class-now.github.io/hushpoll/** — the top panel shows the **real on-chain state of the Hushpoll contract on the Midnight Preview testnet** (`327f878b…d3d2e4`), read live from the public Preview indexer and decoded in the browser with the compiled contract's `ledger()`: question, phase, members, tally, quorum and the vote nullifiers. Below it, a try-it-yourself demo runs the same compiled circuits against an in-memory ledger.
 - Demo video (2 min, narrated): [docs/hushpoll-demo.mp4](docs/hushpoll-demo.mp4)
 - Slides: [docs/hushpoll-slides.pdf](docs/hushpoll-slides.pdf)
 
@@ -121,7 +121,8 @@ Run of 2026-11-20 (full log in [`docs/preview-deploy-run.txt`](docs/preview-depl
 - Wave 3 (done): contract, simulation tests, terminal demo and a web UI for the organizer and member flows.
 - Wave 3 (done): deployment with midnight-js 5.0.0 on a local Midnight network (ledger v9), one full round as proved transactions.
 - Wave 3 (done): the same `deploy/` round on the public Midnight Preview testnet (faucet-funded wallet, DUST registered), see `docs/preview-deploy-run.txt`.
-- Next: the web UI switched from the in-memory ledger to these providers through Lace (DApp Connector).
+- Wave 3 (done): the web UI reads the Preview contract's public ledger live from the indexer (no wallet needed to verify a result; `?contract=<address>` points it at another poll), see `docs/live-preview.png`.
+- Next: voting from the web UI on Preview through Lace (DApp Connector) and a proof server, using the same providers as `deploy/`.
 - Wave 3 (done): a quorum (minimum ballots) set by the organizer and checked on chain when a poll closes, in the contract, tests, terminal demo, web UI and the on-chain round (`docs/quorum.png`).
 - Next: invite links that carry a one-time enrollment code. Keeping tallies hidden until N votes have been cast, which keeps small groups from being de-anonymised by timing. Rating scales beyond yes/no/abstain.
 

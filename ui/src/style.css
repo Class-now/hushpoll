@@ -41,3 +41,12 @@ code { font-size: 11px; color: #9fd3ff; }
 
 .demo-banner { background: #fff6d6; border: 1px solid #e6c95a; border-radius: 8px; padding: 8px 12px; font-size: 14px; color: #4a3b00; }
 .demo-banner b { text-transform: none; }
+
+.live { border-color: #2fbf71; margin: 16px 0; }
+.live-head { display: flex; justify-content: space-between; align-items: center; }
+.live-grid { display: grid; grid-template-columns: 3fr 2fr; gap: 16px; }
+@media (max-width: 900px) { .live-grid { grid-template-columns: 1fr; } }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #2fbf71; margin-right: 6px; box-shadow: 0 0 6px #2fbf71; }
+.bad { color: #ff9a9a; }
+.section-title { margin: 20px 0 0; font-size: 16px; color: #b9bce0; }
+.live a, .demo-banner a { color: inherit; }

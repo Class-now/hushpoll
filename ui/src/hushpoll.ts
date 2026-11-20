@@ -100,6 +100,60 @@ export class LocalHushpoll {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Live mode: read the public ledger of the Hushpoll contract deployed on the
+// Midnight Preview testnet straight from the public indexer (no wallet needed).
+// Writes still need a wallet (Lace) and a proof server; see deploy/run-round.ts.
+
+export const PREVIEW_INDEXER = "https://indexer.preview.midnight.network/api/v4/graphql";
+export const PREVIEW_CONTRACT = "327f878be1135b2d9977bb79e78c7260d4f9c2f157dffb2b9e33a4466de3d2e4";
+
+export type ChainView = PublicView & { action: string; txHash: string; block: number; time: Date };
+
+const fromHex = (h: string) => Uint8Array.from(h.match(/../g) ?? [], (x) => parseInt(x, 16));
+
+const gql = async (query: string, variables: Record<string, unknown>) => {
+  const r = await fetch(PREVIEW_INDEXER, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ query, variables }),
+  });
+  if (!r.ok) throw new Error(`indexer HTTP ${r.status}`);
+  const j = await r.json();
+  if (j.errors?.length) throw new Error(j.errors[0].message);
+  return j.data;
+};
+
+export async function readPreview(address = PREVIEW_CONTRACT): Promise<ChainView> {
+  const d = await gql(
+    `query($a: HexEncoded!) { contractAction(address: $a) { __typename state transaction { hash block { height timestamp } } } }`,
+    { a: address },
+  );
+  const a = d?.contractAction;
+  if (!a) throw new Error(`no contract at ${address.slice(0, 12)}… on Preview`);
+  const state = RT.ContractState.deserialize(fromHex(a.state));
+  const l = ledger(state.data);
+  return {
+    phase: l.phase,
+    poll: l.poll,
+    question: l.question,
+    memberCount: l.memberCount,
+    yes: l.yes,
+    no: l.no,
+    abstain: l.abstain,
+    votes: l.votes,
+    quorum: BigInt(l.quorum),
+    quorumMet: l.quorumMet,
+    nullifiers: Array.from(l.nullifiers, (n: Uint8Array) => toHex(n)),
+    invites: Array.from(l.invites, (n: Uint8Array) => toHex(n)),
+    organizer: toHex(l.organizer),
+    action: a.__typename,
+    txHash: a.transaction.hash,
+    block: a.transaction.block.height,
+    time: new Date(a.transaction.block.timestamp),
+  };
+}
+
 export const errorText = (e: unknown) => {
   const m = (e as Error)?.message ?? String(e);
   return m.replace(/^failed assert: /, "").split("\n")[0];

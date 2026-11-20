@@ -8,8 +8,94 @@ import {
   errorText,
   newSecretKey,
   toHex,
+  readPreview,
+  PREVIEW_CONTRACT,
+  type ChainView,
   type PublicView,
 } from "./hushpoll";
+
+// Public ledger of the contract deployed on Midnight Preview, read live from the indexer.
+function LivePreview() {
+  const address = new URLSearchParams(location.search).get("contract") ?? PREVIEW_CONTRACT;
+  const [chain, setChain] = useState<ChainView | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const load = () => {
+    setLoading(true);
+    setErr(null);
+    readPreview(address)
+      .then(setChain)
+      .catch((e) => setErr(errorText(e)))
+      .finally(() => setLoading(false));
+  };
+  useEffect(load, [address]);
+  const total = chain ? Number(chain.yes + chain.no + chain.abstain) : 0;
+  return (
+    <section className="card live" data-testid="live-preview">
+      <div className="live-head">
+        <h2>
+          <span className="dot" /> Live on Midnight Preview testnet
+        </h2>
+        <button onClick={load} disabled={loading}>
+          {loading ? "Reading…" : "Refresh"}
+        </button>
+      </div>
+      <p className="muted small">
+        Real on-chain state of contract <code>{short(address)}</code>, read just now from the public Preview indexer and
+        decoded with the compiled contract's <code>ledger()</code>. Every vote below was a proved transaction (
+        <a href="https://github.com/Class-now/hushpoll/blob/main/docs/preview-deploy-run.txt" target="_blank" rel="noreferrer">
+          run log
+        </a>
+        ).
+      </p>
+      {err && <p className="bad small">Could not read the indexer: {err}</p>}
+      {chain && (
+        <div className="live-grid">
+          <div>
+            <p className="q">“{chain.question}”</p>
+            <p className="small">
+              {PHASES[chain.phase]} · {String(chain.memberCount)} members · ballots {String(chain.votes)} / quorum{" "}
+              {String(chain.quorum)}{" "}
+              {chain.phase === Phase.CLOSED && (
+                <span className={chain.quorumMet ? "tag" : "tag warn"}>{chain.quorumMet ? "result valid" : "below quorum"}</span>
+              )}
+            </p>
+            {[
+              ["Yes", chain.yes],
+              ["No", chain.no],
+              ["Abstain", chain.abstain],
+            ].map(([label, n]) => (
+              <div className="bar" key={label as string}>
+                <span>{label as string}</span>
+                <div className="track">
+                  <div className="fill" style={{ width: `${total ? Math.round((Number(n) / total) * 100) : 0}%` }} />
+                </div>
+                <b data-testid={`live-${(label as string).toLowerCase()}`}>{String(n)}</b>
+              </div>
+            ))}
+          </div>
+          <div className="small">
+            <p className="muted">
+              Last action: {chain.action} · block {chain.block} · {chain.time.toISOString().replace("T", " ").slice(0, 16)} UTC
+            </p>
+            <p className="muted">
+              tx <code>{short(chain.txHash)}</code>
+            </p>
+            <h3>On-chain nullifiers ({chain.nullifiers.length})</h3>
+            <ul className="nulls">
+              {chain.nullifiers.map((n) => (
+                <li key={n}>
+                  <code>{short(n)}</code>
+                </li>
+              ))}
+            </ul>
+            <p className="muted">Nothing on chain links a nullifier to a member.</p>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
 
 type Person = { name: string; sk: Uint8Array; enrolled: boolean; votedIn: bigint | null };
 type LogLine = { who: string; text: string; ok: boolean };
@@ -104,6 +190,9 @@ export function App() {
         </div>
       </header>
 
+      <LivePreview />
+
+      <h2 className="section-title">Try it yourself (demo mode, simulated ledger)</h2>
       <section className="grid">
         <div className="card">
           <h2>Organizer</h2>
