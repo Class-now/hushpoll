@@ -62,7 +62,7 @@ npm install
 npm run dev         # needs contract/ compiled first
 ```
 
-The UI runs the compiled circuits in the browser through `compact-runtime` (the same code the proof server proves), with the ledger kept in memory. Three panels show the organizer flow (enroll commitments or hand out one-time invite codes, open and close a poll), the member flow (vote yes/no/abstain; an outsider is included to show rejection), and **what the chain sees**: the question, the tallies, the member count and the list of nullifiers, none of which point to a member. "Connect Lace" detects the Midnight Lace wallet through the DApp connector (`window.midnight.mnLace`).
+The UI runs the compiled circuits in the browser through `compact-runtime` (the same code the proof server proves), with the ledger kept in memory. Three panels show the organizer flow (enroll commitments or hand out one-time invite codes, open and close a poll), the member flow (vote yes/no/abstain; an outsider is included to show rejection), and **what the chain sees**: the question, the tallies, the member count and the list of nullifiers, none of which point to a member. Above the demo, **Run a real poll on Preview with your wallet** does the same round on chain through a Midnight DApp Connector wallet (Lace for Midnight on Preview, API 4.x).
 
 The tests in `contract/src/test/hushpoll.test.ts` cover the following:
 - votes are counted once per member;
@@ -116,13 +116,17 @@ MN_NETWORK=preview MN_SEED=<funded 64-hex seed> npx tsx src/run-round.ts
 
 Run of 2026-11-20 (full log in [`docs/preview-deploy-run.txt`](docs/preview-deploy-run.txt)): contract `327f878be1135b2d9977bb79e78c7260d4f9c2f157dffb2b9e33a4466de3d2e4`, deployed in block 184334 (tx `0015d5949d2a5db1…`). Three members enrolled (one with an invite code), quorum 2, three ZK-proved votes, a double vote and an outsider rejected, and the poll closed in block 184390 with `yes=2 no=1 quorumMet=true` — about 6 minutes after the wallet sync.
 
+#### From the browser with a wallet (`ui/src/lace.ts`)
+
+The web UI can play a round on Preview without any server of ours: it finds DApp Connector wallets under `window.midnight`, connects to `preview`, and builds the midnight-js providers from the wallet (`@midnight-ntwrk/midnight-js-dapp-connector-proof-provider`): the indexer endpoints come from the wallet's configuration, proving goes through the wallet's `getProvingProvider` with the prover keys and ZKIR served next to the page (`zk/keys`, `zk/zkir`, checked against `zk/compiler/contract-manifest.json`), and the wallet balances, pays the DUST fee and submits. "Create poll on Preview" deploys a new contract, enrolls you with a fresh member key, sets the quorum to 1 and opens the poll; then you vote and close it, and the panel links to the live on-chain view of the new contract. The organizer and member keys live in the browser's encrypted private state (IndexedDB) and are never given to the wallet.
+
 ## Roadmap
 
 - Wave 3 (done): contract, simulation tests, terminal demo and a web UI for the organizer and member flows.
 - Wave 3 (done): deployment with midnight-js 5.0.0 on a local Midnight network (ledger v9), one full round as proved transactions.
 - Wave 3 (done): the same `deploy/` round on the public Midnight Preview testnet (faucet-funded wallet, DUST registered), see `docs/preview-deploy-run.txt`.
 - Wave 3 (done): the web UI reads the Preview contract's public ledger live from the indexer (no wallet needed to verify a result; `?contract=<address>` points it at another poll), see `docs/live-preview.png`.
-- Next: voting from the web UI on Preview through Lace (DApp Connector) and a proof server, using the same providers as `deploy/`.
+- Wave 3 (in progress): deploy, enroll, open, vote and close from the web UI through a DApp Connector wallet (Lace for Midnight) on Preview, with the ZK artifacts served from the Pages site (`ui/src/lace.ts`). Checked headless with a stub wallet up to the hand-off of the proved deploy transaction to `balanceUnsealedTransaction`; next is a full round with Lace.
 - Wave 3 (done): a quorum (minimum ballots) set by the organizer and checked on chain when a poll closes, in the contract, tests, terminal demo, web UI and the on-chain round (`docs/quorum.png`).
 - Next: invite links that carry a one-time enrollment code. Keeping tallies hidden until N votes have been cast, which keeps small groups from being de-anonymised by timing. Rating scales beyond yes/no/abstain.
 

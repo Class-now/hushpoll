@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { useEffect, useMemo, useState } from "react";
+import { LacePanel } from "./LacePanel";
 import {
   LocalHushpoll,
   Choice,
@@ -115,7 +116,6 @@ export function App() {
   const [quorumInput, setQuorumInput] = useState(2);
   const [log, setLog] = useState<LogLine[]>([]);
   const [busy, setBusy] = useState(false);
-  const [wallet, setWallet] = useState<string>("not connected");
   // One-time invite codes the organizer handed out off-chain (a link or QR in real use).
   const [codes, setCodes] = useState<{ code: Uint8Array; usedBy: string | null }[]>([]);
   const freshCode = codes.find((c) => !c.usedBy);
@@ -144,21 +144,6 @@ export function App() {
     }
   };
 
-  const connectLace = async () => {
-    const w = (window as any).midnight?.mnLace;
-    if (!w) {
-      setWallet("Lace (Midnight) not found — running in demo mode (simulated ledger)");
-      return;
-    }
-    try {
-      const api = await w.enable();
-      const state = await api.state();
-      setWallet(`Lace connected: ${short(String(state?.address ?? "unknown"))}`);
-    } catch (e) {
-      setWallet(`Lace refused: ${errorText(e)}`);
-    }
-  };
-
   if (!poll || !view) return <main className="wrap">Loading the Compact runtime…</main>;
 
   const total = Number(view.yes + view.no + view.abstain);
@@ -184,13 +169,11 @@ export function App() {
             source
           </a>
         </p>
-        <div className="wallet">
-          <button onClick={connectLace}>Connect Lace</button>
-          <span>{wallet}</span>
-        </div>
       </header>
 
       <LivePreview />
+
+      <LacePanel />
 
       <h2 className="section-title">Try it yourself (demo mode, simulated ledger)</h2>
       <section className="grid">
