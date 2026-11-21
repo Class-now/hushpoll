@@ -1,0 +1,45 @@
+Hushpoll web UI -> DApp Connector -> Midnight Preview, 2026-11-21 (JST). Headless Chromium drives ui/ (Pages build); window.midnight is a test wallet whose calls go to deploy/src/wallet-bridge.ts (testkit DAppConnectorWalletAdapter over a faucet-funded Preview wallet, local proof server for the fee proofs).
+
+== UI (e2e-lace-real.mjs)
+[13s] connected
+[13s] step: deploy a new Hushpoll contract… (the wallet proves and pays the DUST fee)
+[40s] step: enroll yourself (commitment 23e15c029c…3fc303)… (the wallet proves and pays the DUST fee)
+[94s] step: set the quorum to 1 ballot… (the wallet proves and pays the DUST fee)
+[160s] step: open the poll “Move the Thursday seminar to Friday?”… (the wallet proves and pays the DUST fee)
+[245s] deployed, enrolled, quorum, opened
+[334s] voted
+[384s] closed
+{
+ "steps": [
+  "close the poll — tx 001b04475f…1d61a6 · block 208512",
+  "vote Yes with a ZK membership proof — tx 009f5be3c9…dd82a0 · block 208504",
+  "open the poll “Move the Thursday seminar to Friday?” — tx 00d7ebdcb5…7a80c0 · block 208489",
+  "set the quorum to 1 ballot — tx 00ea8055f9…8c1ae8 · block 208475",
+  "enroll yourself (commitment 23e15c029c…3fc303) — tx 00e7a4cff5…98adcc · block 208464",
+  "deploy a new Hushpoll contract",
+  "connect Test wallet (Node bridge) on Midnight Preview"
+ ],
+ "tally": "phase CLOSED · members 1 · yes 1 · no 0 · abstain 0 · ballots 1/1 · result valid",
+ "contract": "?contract=2404de3437c34b36b771a6df14785a587dd5cf14eec913b79ac0183eb26e0447",
+ "errors": []
+}
+
+== wallet side (wallet-bridge.ts), last round
+[2933.5s] submitTransaction (9348 bytes)
+[2954.9s] submitted
+[2999.8s] proved contract:2404de3437c34b36b771a6df14785a587dd5cf14eec913b79ac0183eb26e0447/setQuorum?vk=2a46d702c3ce1bd9f5d133e0a290e8ddc125f1a25f71c719b0dca0e78f6556bb in 23.9s
+[2999.8s] balanceUnsealedTransaction (5899 bytes)
+[3002.1s] submitTransaction (9155 bytes)
+[3021.7s] submitted
+[3085.6s] proved contract:2404de3437c34b36b771a6df14785a587dd5cf14eec913b79ac0183eb26e0447/open?vk=dce14068063a0368c5dd598b6469c5eeb25f4431fa184cbad519952a7e0c4432 in 24.4s
+[3085.6s] balanceUnsealedTransaction (6084 bytes)
+[3087.9s] submitTransaction (9349 bytes)
+[3104.5s] submitted
+[3172.2s] proved contract:2404de3437c34b36b771a6df14785a587dd5cf14eec913b79ac0183eb26e0447/vote?vk=34046087df57344255cfee32903e99daabfda2917a039bba8204b4bea90d6ae5 in 50.4s
+[3172.2s] balanceUnsealedTransaction (6117 bytes)
+[3174.6s] submitTransaction (9383 bytes)
+[3195.4s] submitted
+[3224.2s] proved contract:2404de3437c34b36b771a6df14785a587dd5cf14eec913b79ac0183eb26e0447/close?vk=f848d66c219166c9937f5ad8a9931846162eb1d0d495f24e0a7f79232fae239c in 23.4s
+[3224.2s] balanceUnsealedTransaction (6073 bytes)
+[3226.6s] submitTransaction (9337 bytes)
+[3243.5s] submitted

@@ -7,7 +7,7 @@
 import type { ConnectedAPI, InitialAPI } from "@midnight-ntwrk/dapp-connector-api";
 import { deployContract, findDeployedContract } from "@midnight-ntwrk/midnight-js-contracts";
 import { CompiledContract } from "@midnight-ntwrk/midnight-js-protocol/v9/compact-js";
-import { CostModel, ContractState } from "@midnight-ntwrk/midnight-js-protocol/v9";
+import { CostModel } from "@midnight-ntwrk/midnight-js-protocol/v9";
 import { indexerPublicDataProvider } from "@midnight-ntwrk/midnight-js-indexer-public-data-provider";
 import { FetchZkConfigProvider } from "@midnight-ntwrk/midnight-js-fetch-zk-config-provider";
 import { levelPrivateStateProvider } from "@midnight-ntwrk/midnight-js-level-private-state-provider";
@@ -17,8 +17,9 @@ import {
   dappConnectorWalletProviders,
 } from "@midnight-ntwrk/midnight-js-dapp-connector-proof-provider";
 import { createMidnightProviders } from "@midnight-ntwrk/midnight-js-utils";
-import { Contract, ledger, pureCircuits, Choice } from "../../contract/src/managed/hushpoll/contract/index.js";
+import { Contract, pureCircuits, Choice } from "../../contract/src/managed/hushpoll/contract/index.js";
 import { witnesses, type HushpollPrivateState } from "../../contract/src/witnesses";
+import { readPreview } from "./hushpoll";
 
 export const NETWORK_ID = "preview";
 
@@ -37,7 +38,6 @@ const compiled = () =>
     CompiledContract.withCompiledFileAssets("zk"),
   ) as any;
 
-export type ChainView = ReturnType<typeof ledger>;
 
 export class LaceHushpoll {
   private constructor(
@@ -112,10 +112,8 @@ export class LacePoll {
     readonly address: string,
   ) {}
 
-  async read(): Promise<ChainView> {
-    const s = await this.session.providers.publicDataProvider.queryContractState(this.address);
-    return ledger(s.contractState.deserialize({ v9: ContractState }).data);
-  }
+  /** The public ledger as the indexer serves it now (same reader as the live view). */
+  read = () => readPreview(this.address);
 
   enroll = async (commitment: Uint8Array) => info(await this.handle.callTx.enroll(commitment));
   addInvite = async (code: Uint8Array) => info(await this.handle.callTx.addInvite(pureCircuits.inviteHash(code)));
