@@ -3,8 +3,8 @@
 Built for the Midnight Buildathon Wave 3 (AKINDO). Licensed under Apache-2.0. Topic: `midnightntwrk`.
 
 - **Live demo: https://class-now.github.io/hushpoll/** — the top panel shows the **real on-chain state of the Hushpoll contract on the Midnight Preview testnet** (`327f878b…d3d2e4`), read live from the public Preview indexer and decoded in the browser with the compiled contract's `ledger()`: question, phase, members, tally, quorum and the vote nullifiers. Below it, a try-it-yourself demo runs the same compiled circuits against an in-memory ledger.
-- Demo video (2 min, narrated): [docs/hushpoll-demo.mp4](docs/hushpoll-demo.mp4)
-- Slides: [docs/hushpoll-slides.pdf](docs/hushpoll-slides.pdf)
+- Demo video (2 min 44 s, narrated; demo mode, the live Preview panel and the wallet round from the web UI): [docs/hushpoll-demo.mp4](docs/hushpoll-demo.mp4)
+- Slides (7): [docs/hushpoll-slides.pdf](docs/hushpoll-slides.pdf)
 
 ## The problem
 
